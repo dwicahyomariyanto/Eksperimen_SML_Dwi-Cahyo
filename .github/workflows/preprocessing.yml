@@ -1,0 +1,55 @@
+name: Automated Data Preprocessing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "credit_raw/**"
+      - "preprocessing/automate_Dwi-Cahyo.py"
+      - ".github/workflows/preprocessing.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  preprocessing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.7"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run automated preprocessing
+        run: |
+          python preprocessing/automate_Dwi-Cahyo.py \
+            --input credit_raw/credit_raw.csv \
+            --output-dir preprocessing/credit_preprocessing
+
+      - name: Upload preprocessed dataset as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: credit_preprocessing
+          path: preprocessing/credit_preprocessing/
+
+      - name: Commit latest preprocessed dataset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add preprocessing/credit_preprocessing
+          if git diff --cached --quiet; then
+            echo "Dataset tidak berubah, tidak ada commit."
+          else
+            git commit -m "chore: update preprocessed dataset [skip ci]"
+            git push
+          fi
